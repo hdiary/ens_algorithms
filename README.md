@@ -27,22 +27,3 @@ Jeu de données synthétique généré via `sklearn.datasets.make_classification
 | Voting (Hard)                        | 0.952                                       | 1.7885                   | Vote majoritaire sur les classes prédites par LogReg, SVM, RF, XGBoost.                                                                                                                                                                                                        |
 | Voting (Soft)                        | 0.966                                       | 1.6734                   | **Meilleur score global.** Moyenne des probabilités plutôt qu'un vote binaire : exploite le niveau de confiance de chaque modèle et dépasse même le meilleur modèle individuel (XGBoost, 0.956).                                                                               |
 | Stacking                             | 0.962                                       | 9.2508                   | Très proche du Soft Voting sans le dépasser. Le méta-modèle (Régression Logistique, cv=5) n'a pas trouvé de combinaison non-linéaire suffisamment robuste pour battre la simple moyenne des probabilités sur ce jeu de données.                                                |
-
-## Réponses aux questions de réflexion
-
-### Pourquoi la limitation des variables à chaque nœud (max_features) améliore-t-elle la diversité des arbres par rapport à un Bagging classique ?
-
-Dans le Bagging classique, toutes les features restent disponibles à chaque nœud. Si une feature est très informative, elle est choisie comme meilleure coupure à la racine de la quasi-totalité des arbres, quel que soit l'échantillon bootstrap utilisé — les arbres se ressemblent donc fortement et sont corrélés entre eux, ce qui limite le bénéfice du vote majoritaire.
-
-Random Forest force, à chaque nœud, le choix de la meilleure coupure parmi un sous-ensemble aléatoire de features (`max_features`). Une feature dominante n'est donc pas systématiquement disponible, ce qui oblige les arbres à explorer des structures différentes et à s'appuyer sur des features secondaires. Les arbres deviennent moins corrélés entre eux, leurs erreurs sont plus indépendantes, et le vote majoritaire réduit davantage la variance globale.
-
-### Point de surapprentissage sur XGBoost (courbe Log-Loss)
-
-La log-loss sur le train diminue continuellement jusqu'à quasiment 0 sur les 200 itérations. La log-loss sur le test diminue rapidement au début, atteint un minimum autour de l'itération 40-50 (≈ 0.14), puis se stabilise et remonte très légèrement (0.135-0.145) jusqu'à la fin. Ce point de divergence entre les deux courbes marque le début du surapprentissage : au-delà, les arbres supplémentaires captent du bruit spécifique au train plutôt que du signal généralisable. Le surapprentissage reste toutefois léger sur ce jeu de données.
-
-## Conclusion générale
-
-- Les méthodes d'ensemble améliorent systématiquement les performances par rapport à un arbre seul, en s'attaquant soit à la variance (Bagging, Random Forest), soit au biais (Boosting).
-- Le Boosting par repondération (AdaBoost) est moins performant ici que le Gradient Boosting (XGBoost), qui corrige directement les résidus via la descente de gradient.
-- Combiner des modèles hétérogènes (Voting, Stacking) apporte le meilleur résultat global, le Soft Voting (0.966) surpassant tous les modèles individuels ainsi que le Stacking.
-- La complexité supplémentaire du Stacking n'est pas toujours synonyme de meilleure performance : sur ce dataset, la simple moyenne des probabilités (Soft Voting) captait déjà l'essentiel de la complémentarité entre modèles.
